@@ -1,4 +1,4 @@
-import Subscriber from "../models/Subscriber.js";
+import Subscriber from "../models/subscriber.js";
 import transporter from "../EmailSetup/email.js";
 
 // Generate OTP
@@ -45,10 +45,10 @@ const subscribeUser = async (req, res) => {
     // Cooldown check (60 sec)
     if (
       user?.lastOtpSentAt &&
-      now.getTime() - new Date(user.lastOtpSentAt).getTime() < 10 * 1000
+      now.getTime() - new Date(user.lastOtpSentAt).getTime() < 60 * 1000
     ) {
       const remainingSeconds = Math.ceil(
-        (10 * 1000 -
+        (60 * 1000 -
           (now.getTime() - new Date(user.lastOtpSentAt).getTime())) /
           1000
       );
