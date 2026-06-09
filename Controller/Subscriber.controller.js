@@ -75,12 +75,12 @@ const subscribeUser = async (req, res) => {
     await user.save();
 
     // =========================
-    // SEND EMAIL (FIXED PART)
+    // SEND EMAIL (NON-BLOCKING)
     // =========================
     try {
       const transporter = await createTransporter();
 
-      await transporter.sendMail({
+      transporter.sendMail({
         from: `"Newsletter" <${process.env.GOOGLE_USER}>`,
         to: email,
         subject: `Your Verification Code: ${otp}`,
@@ -94,11 +94,16 @@ const subscribeUser = async (req, res) => {
             </div>
           </div>
         `,
+      })
+      .then(() => {
+        console.log("OTP email sent");
+      })
+      .catch((err) => {
+        console.log("Email failed:", err);
       });
 
-      console.log("OTP email sent successfully");
     } catch (mailError) {
-      console.log("Email sending failed:", mailError);
+      console.log("Transporter error:", mailError);
     }
 
     return res.status(200).json({
@@ -173,7 +178,7 @@ const verifyOTP = async (req, res) => {
     try {
       const transporter = await createTransporter();
 
-      await transporter.sendMail({
+      transporter.sendMail({
         from: `"Newsletter" <${process.env.GOOGLE_USER}>`,
         to: email,
         subject: "Welcome 🎉",
@@ -186,9 +191,12 @@ const verifyOTP = async (req, res) => {
             </div>
           </div>
         `,
+      }).catch((err) => {
+        console.log("Welcome email failed:", err);
       });
+
     } catch (mailError) {
-      console.log("Welcome email failed:", mailError);
+      console.log("Transporter error:", mailError);
     }
 
     return res.status(200).json({
