@@ -1,5 +1,5 @@
 import Subscriber from "../models/subscriber.js";
-import transporter from "../EmailSetup/email.js";
+import { createTransporter } from "../EmailSetup/email.js";
 
 // Generate OTP
 const generateOtp = () => {
@@ -67,37 +67,36 @@ const subscribeUser = async (req, res) => {
       });
     }
 
-    // Set OTP data
+    // Save OTP data
     user.otp = otp;
-    user.otpExpiresAt = new Date(Date.now() + 60 * 1000); // 60 sec expiry
+    user.otpExpiresAt = new Date(Date.now() + 60 * 1000);
     user.lastOtpSentAt = new Date();
 
     await user.save();
 
-    // Send Email
+    // =========================
+    // SEND EMAIL (FIXED PART)
+    // =========================
     try {
+      const transporter = await createTransporter();
+
       await transporter.sendMail({
         from: `"Newsletter" <${process.env.GOOGLE_USER}>`,
         to: email,
         subject: `Your Verification Code: ${otp}`,
         html: `
-        <div style="font-family:Arial,sans-serif;background:#f4f4f4;padding:20px;">
-          <div style="max-width:600px;margin:auto;background:white;padding:30px;border-radius:10px;">
-            
-            <h2 style="color:#4F46E5;">Email Verification</h2>
-
-            <p>Use the OTP below to verify your email:</p>
-
-            <div style="text-align:center;margin:30px 0;">
-              <h1 style="color:#4F46E5;letter-spacing:8px;">${otp}</h1>
+          <div style="font-family:Arial,sans-serif;background:#f4f4f4;padding:20px;">
+            <div style="max-width:600px;margin:auto;background:white;padding:30px;border-radius:10px;">
+              <h2 style="color:#4F46E5;">Email Verification</h2>
+              <p>Use the OTP below:</p>
+              <h1 style="text-align:center;letter-spacing:8px;">${otp}</h1>
+              <p>This OTP expires in <strong>60 seconds</strong>.</p>
             </div>
-
-            <p>This OTP expires in <strong>60 seconds</strong>.</p>
-
           </div>
-        </div>
         `,
       });
+
+      console.log("OTP email sent successfully");
     } catch (mailError) {
       console.log("Email sending failed:", mailError);
     }
@@ -106,7 +105,6 @@ const subscribeUser = async (req, res) => {
       success: true,
       message: "OTP sent successfully",
     });
-
   } catch (error) {
     console.log(error);
 
@@ -147,7 +145,6 @@ const verifyOTP = async (req, res) => {
       });
     }
 
-    // Check expiry safely
     if (
       !user.otpExpiresAt ||
       new Date(user.otpExpiresAt).getTime() < Date.now()
@@ -158,7 +155,6 @@ const verifyOTP = async (req, res) => {
       });
     }
 
-    // Safe OTP comparison
     if (String(user.otp) !== String(otp)) {
       return res.status(400).json({
         success: false,
@@ -166,7 +162,6 @@ const verifyOTP = async (req, res) => {
       });
     }
 
-    // Verify user
     user.isVerified = true;
     user.otp = null;
     user.otpExpiresAt = null;
@@ -176,22 +171,20 @@ const verifyOTP = async (req, res) => {
 
     // Welcome email
     try {
+      const transporter = await createTransporter();
+
       await transporter.sendMail({
         from: `"Newsletter" <${process.env.GOOGLE_USER}>`,
         to: email,
         subject: "Welcome 🎉",
         html: `
-        <div style="font-family:Arial,sans-serif;padding:20px;background:#f4f4f4;">
-          <div style="max-width:600px;margin:auto;background:white;padding:30px;border-radius:10px;">
-            
-            <h1 style="color:#4F46E5;">Welcome 🎉</h1>
-
-            <p>Your email has been successfully verified.</p>
-
-            <p>Thank you for subscribing!</p>
-
+          <div style="font-family:Arial,sans-serif;padding:20px;background:#f4f4f4;">
+            <div style="max-width:600px;margin:auto;background:white;padding:30px;border-radius:10px;">
+              <h1 style="color:#4F46E5;">Welcome 🎉</h1>
+              <p>Your email has been successfully verified.</p>
+              <p>Thank you for subscribing!</p>
+            </div>
           </div>
-        </div>
         `,
       });
     } catch (mailError) {
@@ -202,7 +195,6 @@ const verifyOTP = async (req, res) => {
       success: true,
       message: "Email verified successfully",
     });
-
   } catch (error) {
     console.log(error);
 
