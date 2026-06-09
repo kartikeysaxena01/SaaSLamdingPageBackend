@@ -10,19 +10,24 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://modern-saas-landing-gamma.vercel.app",
+    origin: "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 app.use(express.json());
 
 app.use("/api", SubscriberRoutes);
 
-mongoose.connect(process.env.MONGO_URI).then(() => {
-  console.log("MongoDB connected");
-});
-const port=8000;
-console.log(port);
-app.listen(port, () => {
-  console.log("Server running");
-});
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected");
+
+    const PORT = process.env.PORT || 8000;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.log("MongoDB connection error:", err);
+  });
