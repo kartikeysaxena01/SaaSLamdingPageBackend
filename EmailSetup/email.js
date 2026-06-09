@@ -12,18 +12,20 @@ oAuth2Client.setCredentials({
   refresh_token: config.GOOGLE_REFRESH_TOKEN,
 });
 
-const accessToken = await oAuth2Client.getAccessToken();
+async function createTransporter() {
+  const accessToken = await oAuth2Client.getAccessToken();
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    type: "OAuth2",
-    user: config.GOOGLE_USER,
-    clientId: config.GOOGLE_CLIENT_ID,
-    clientSecret: config.GOOGLE_CLIENT_SECRET,
-    refreshToken: config.GOOGLE_REFRESH_TOKEN,
-    accessToken: accessToken.token,
-  },
-});
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      type: "OAuth2",
+      user: config.GOOGLE_USER,
+      clientId: config.GOOGLE_CLIENT_ID,
+      clientSecret: config.GOOGLE_CLIENT_SECRET,
+      refreshToken: config.GOOGLE_REFRESH_TOKEN,
+      accessToken: accessToken.token,
+    },
+  });
+}
 
-export default transporter;
+export default createTransporter;
