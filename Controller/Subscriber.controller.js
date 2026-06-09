@@ -1,16 +1,21 @@
-import Subscriber from "../models/Subscriber.js"
+import Subscriber from "../models/Subscriber.js";
 import transporter from "../EmailSetup/email.js";
 
+// Generate OTP
 const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+/* =========================
+   SUBSCRIBE USER (SEND OTP)
+========================= */
 const subscribeUser = async (req, res) => {
   try {
     const { email } = req.body;
 
     if (!email) {
       return res.status(400).json({
+        success: false,
         message: "Email is required",
       });
     }
@@ -19,37 +24,42 @@ const subscribeUser = async (req, res) => {
 
     if (!emailRegex.test(email)) {
       return res.status(400).json({
+        success: false,
         message: "Invalid email format",
       });
     }
 
-    const otp = generateOtp();
     const now = new Date();
+    const otp = generateOtp();
 
     let user = await Subscriber.findOne({ email });
 
+    // If already verified
     if (user?.isVerified) {
       return res.status(400).json({
+        success: false,
         message: "Email is already verified",
       });
     }
 
+    // Cooldown check (60 sec)
     if (
-      user &&
-      user.lastOtpSentAt &&
-      now.getTime() - user.lastOtpSentAt.getTime() < 60 * 1000
+      user?.lastOtpSentAt &&
+      now.getTime() - new Date(user.lastOtpSentAt).getTime() < 10 * 1000
     ) {
       const remainingSeconds = Math.ceil(
-        (60 * 1000 -
-          (now.getTime() - user.lastOtpSentAt.getTime())) /
+        (10 * 1000 -
+          (now.getTime() - new Date(user.lastOtpSentAt).getTime())) /
           1000
       );
 
       return res.status(429).json({
+        success: false,
         message: `Please wait ${remainingSeconds} seconds before requesting a new OTP`,
       });
     }
 
+    // Create user if not exists
     if (!user) {
       user = new Subscriber({
         email,
@@ -57,97 +67,40 @@ const subscribeUser = async (req, res) => {
       });
     }
 
+    // Set OTP data
     user.otp = otp;
-    user.otpExpiresAt = new Date(Date.now() + 60 * 1000);
+    user.otpExpiresAt = new Date(Date.now() + 60 * 1000); // 60 sec expiry
     user.lastOtpSentAt = new Date();
 
     await user.save();
 
-    await transporter.sendMail({
-      from: `"Newsletter" <${process.env.GOOGLE_USER}>`,
-      to: email,
-      subject: `Your Verification Code: ${otp}`,
-      html: `
-      <!DOCTYPE html>
-      <html>
-      <body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+    // Send Email
+    try {
+      await transporter.sendMail({
+        from: `"Newsletter" <${process.env.GOOGLE_USER}>`,
+        to: email,
+        subject: `Your Verification Code: ${otp}`,
+        html: `
+        <div style="font-family:Arial,sans-serif;background:#f4f4f4;padding:20px;">
+          <div style="max-width:600px;margin:auto;background:white;padding:30px;border-radius:10px;">
+            
+            <h2 style="color:#4F46E5;">Email Verification</h2>
 
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td align="center">
+            <p>Use the OTP below to verify your email:</p>
 
-            <table width="600" style="background:#ffffff;margin-top:30px;border-radius:12px;overflow:hidden;">
+            <div style="text-align:center;margin:30px 0;">
+              <h1 style="color:#4F46E5;letter-spacing:8px;">${otp}</h1>
+            </div>
 
-              <tr>
-                <td style="background:#4F46E5;padding:25px;text-align:center;">
-                  <h1 style="color:white;margin:0;">
-                    Email Verification
-                  </h1>
-                </td>
-              </tr>
+            <p>This OTP expires in <strong>60 seconds</strong>.</p>
 
-              <tr>
-                <td style="padding:40px;">
-
-                  <h2>Hello 👋</h2>
-
-                  <p>
-                    Thank you for subscribing.
-                    Use the OTP below to verify your email.
-                  </p>
-
-                  <div style="
-                    background:#EEF2FF;
-                    padding:25px;
-                    text-align:center;
-                    border-radius:10px;
-                    margin:30px 0;
-                  ">
-                    <h1 style="
-                      margin:0;
-                      color:#4F46E5;
-                      font-size:40px;
-                      letter-spacing:8px;
-                    ">
-                      ${otp}
-                    </h1>
-                  </div>
-
-                  <p>
-                    This OTP expires in
-                    <strong>30 seconds</strong>.
-                  </p>
-
-                  <p>
-                    If you didn't request this email,
-                    you can safely ignore it.
-                  </p>
-
-                </td>
-              </tr>
-
-              <tr>
-                <td style="
-                  background:#F9FAFB;
-                  text-align:center;
-                  padding:20px;
-                  color:#6B7280;
-                  font-size:14px;
-                ">
-                  © 2026 Newsletter
-                </td>
-              </tr>
-
-            </table>
-
-          </td>
-        </tr>
-      </table>
-
-      </body>
-      </html>
-      `,
-    });
+          </div>
+        </div>
+        `,
+      });
+    } catch (mailError) {
+      console.log("Email sending failed:", mailError);
+    }
 
     return res.status(200).json({
       success: true,
@@ -158,18 +111,22 @@ const subscribeUser = async (req, res) => {
     console.log(error);
 
     return res.status(500).json({
+      success: false,
       message: "Server Error",
     });
   }
 };
 
-
+/* =========================
+   VERIFY OTP
+========================= */
 const verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
       return res.status(400).json({
+        success: false,
         message: "Email and OTP are required",
       });
     }
@@ -178,31 +135,38 @@ const verifyOTP = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({
+        success: false,
         message: "User not found",
       });
     }
 
     if (user.isVerified) {
       return res.status(400).json({
+        success: false,
         message: "User is already verified",
       });
     }
 
+    // Check expiry safely
     if (
       !user.otpExpiresAt ||
-      user.otpExpiresAt.getTime() < Date.now()
+      new Date(user.otpExpiresAt).getTime() < Date.now()
     ) {
       return res.status(400).json({
+        success: false,
         message: "OTP expired. Please request a new OTP.",
       });
     }
 
-    if (user.otp !== otp) {
+    // Safe OTP comparison
+    if (String(user.otp) !== String(otp)) {
       return res.status(400).json({
+        success: false,
         message: "Invalid OTP",
       });
     }
 
+    // Verify user
     user.isVerified = true;
     user.otp = null;
     user.otpExpiresAt = null;
@@ -210,39 +174,29 @@ const verifyOTP = async (req, res) => {
 
     await user.save();
 
-    await transporter.sendMail({
-      from: `"Newsletter" <${process.env.GOOGLE_USER}>`,
-      to: email,
-      subject: "Welcome 🎉",
-      html: `
-      <div style="font-family:Arial,sans-serif;padding:20px;background:#f4f4f4;">
-        <div style="max-width:600px;margin:auto;background:white;padding:30px;border-radius:10px;">
-          
-          <h1 style="color:#4F46E5;">
-            Welcome 🎉
-          </h1>
+    // Welcome email
+    try {
+      await transporter.sendMail({
+        from: `"Newsletter" <${process.env.GOOGLE_USER}>`,
+        to: email,
+        subject: "Welcome 🎉",
+        html: `
+        <div style="font-family:Arial,sans-serif;padding:20px;background:#f4f4f4;">
+          <div style="max-width:600px;margin:auto;background:white;padding:30px;border-radius:10px;">
+            
+            <h1 style="color:#4F46E5;">Welcome 🎉</h1>
 
-          <p>
-            Your email has been successfully verified.
-          </p>
+            <p>Your email has been successfully verified.</p>
 
-          <p>
-            Thank you for subscribing to our newsletter.
-            You'll now receive updates, tips, announcements,
-            and exclusive content directly in your inbox.
-          </p>
+            <p>Thank you for subscribing!</p>
 
-          <hr style="margin:25px 0;">
-
-          <p>
-            Best Regards,<br>
-            <strong>Newsletter Team</strong>
-          </p>
-
+          </div>
         </div>
-      </div>
-      `,
-    });
+        `,
+      });
+    } catch (mailError) {
+      console.log("Welcome email failed:", mailError);
+    }
 
     return res.status(200).json({
       success: true,
@@ -253,11 +207,13 @@ const verifyOTP = async (req, res) => {
     console.log(error);
 
     return res.status(500).json({
+      success: false,
       message: "Server error",
     });
   }
 };
+
 export {
+  subscribeUser,
   verifyOTP,
-  subscribeUser
-}
+};

@@ -2,7 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
-import SubscriberRoutes from "./routes/Subscribe.route.js";
+import SubscriberRoutes from "./routes/Subscribe.route.js"
 
 dotenv.config();
 
@@ -10,7 +10,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://modern-saas-landing-gamma.vercel.app/",
+    origin: "http://localhost:5173",
     credentials: true,
   })
 );
