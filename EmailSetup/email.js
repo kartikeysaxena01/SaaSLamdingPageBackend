@@ -12,20 +12,30 @@ oAuth2Client.setCredentials({
   refresh_token: config.GOOGLE_REFRESH_TOKEN,
 });
 
-async function createTransporter() {
-  const accessToken = await oAuth2Client.getAccessToken();
+// optional cache (recommended)
+let cachedTransporter = null;
 
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      type: "OAuth2",
-      user: config.GOOGLE_USER,
-      clientId: config.GOOGLE_CLIENT_ID,
-      clientSecret: config.GOOGLE_CLIENT_SECRET,
-      refreshToken: config.GOOGLE_REFRESH_TOKEN,
-      accessToken: accessToken.token,
-    },
-  });
-}
+export const createTransporter = async () => {
+  try {
+    if (cachedTransporter) return cachedTransporter;
 
-export default createTransporter;
+    const accessToken = await oAuth2Client.getAccessToken();
+
+    cachedTransporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        type: "OAuth2",
+        user: config.GOOGLE_USER,
+        clientId: config.GOOGLE_CLIENT_ID,
+        clientSecret: config.GOOGLE_CLIENT_SECRET,
+        refreshToken: config.GOOGLE_REFRESH_TOKEN,
+        accessToken: accessToken?.token || accessToken,
+      },
+    });
+
+    return cachedTransporter;
+  } catch (error) {
+    console.log("❌ Transporter creation failed:", error);
+    throw error;
+  }
+};
