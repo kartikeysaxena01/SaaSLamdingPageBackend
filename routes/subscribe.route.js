@@ -1,5 +1,5 @@
 import express from "express";
-import  {subscribeUser,verifyOTP}  from "../Contoller/subsciber.controller.js";
+import  {subscribeUser,verifyOTP}  from "../Controller/Subscriber.controller.js";
 import rateLimit from "express-rate-limit";
 const router = express.Router();
 

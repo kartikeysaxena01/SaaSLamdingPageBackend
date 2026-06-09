@@ -1,4 +1,4 @@
-import Subscriber from "../models/Subscriber.js";
+import Subscriber from "../models/Subscriber.js"
 import transporter from "../EmailSetup/email.js";
 
 const generateOtp = () => {
