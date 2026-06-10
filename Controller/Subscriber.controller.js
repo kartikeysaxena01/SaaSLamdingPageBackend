@@ -130,7 +130,7 @@ const subscribeUser = async (req, res) => {
             <tr>
               <td style="padding:25px;text-align:center;background:#f9fafb;border-top:1px solid #e5e7eb;">
                 <p style="margin:0;color:#6b7280;font-size:13px;">
-                  © 2026 Your Company. All rights reserved.
+                  © 2026 kartikey Company. All rights reserved.
                 </p>
               </td>
             </tr>
@@ -278,7 +278,7 @@ const verifyOTP = async (req, res) => {
                 </p>
 
                 <p style="color:#111827;font-weight:bold;">
-                  — Team Your Company
+                  — Team kartikey
                 </p>
               </td>
             </tr>
@@ -286,7 +286,7 @@ const verifyOTP = async (req, res) => {
             <tr>
               <td style="background:#f9fafb;padding:25px;text-align:center;border-top:1px solid #e5e7eb;">
                 <p style="margin:0;color:#6b7280;font-size:13px;">
-                  © 2026 Your Company. All rights reserved.
+                  © 2026 kartikey Company. All rights reserved.
                 </p>
               </td>
             </tr>
