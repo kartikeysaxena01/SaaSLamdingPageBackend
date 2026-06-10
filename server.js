@@ -9,7 +9,7 @@ const app = express();
 
 app.use(
   cors({
-    origin:"https://modern-saas-landing-gamma.vercel.app",
+    origin:"*",
     credentials: true,
   })
 );
