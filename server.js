@@ -1,21 +1,22 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import dotenv from "dotenv";
 
 import SubscriberRoutes from "./routes/subscribe.route.js";
-import fs from "fs";
+
+dotenv.config();
 
 const app = express();
 
 app.use(
   cors({
-    origin:"*",
+    origin: "*",
     credentials: true,
   })
 );
 
 app.use(express.json());
-
 
 app.use("/api", SubscriberRoutes);
 
@@ -28,15 +29,15 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 8000;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
-
-
+// 🔥 CONNECT DB FIRST, THEN START SERVER
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
   })
   .catch((err) => {
     console.log("❌ MongoDB connection error:", err.message);
